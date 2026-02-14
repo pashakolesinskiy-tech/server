@@ -9,8 +9,46 @@ from utils import generate_code
 
 from database import engine
 from models import Base
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+
+from pydantic import BaseModel
+
+
+class Feedback(BaseModel):
+
+    telegramId: int
+    message: str
+
+
+@app.post("/api/feedback")
+async def feedback(data: Feedback):
+
+    print("Feedback:", data)
+
+    return {
+
+        "success": True
+
+    }
+
+
+app.add_middleware(
+
+    CORSMiddleware,
+
+    allow_origins=["*"],
+
+    allow_credentials=True,
+
+    allow_methods=["*"],
+
+    allow_headers=["*"],
+
+)
+
 
 @app.on_event("startup")
 async def startup():
