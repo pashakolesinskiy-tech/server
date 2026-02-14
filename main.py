@@ -7,9 +7,21 @@ from models import User, ReferralVisit
 from schemas import ReferralCreate, ReferralVisitCreate
 from utils import generate_code
 
+from database import engine
+from models import Base
 
 app = FastAPI()
 
+@app.on_event("startup")
+async def startup():
+
+    print("CREATING TABLES...")
+
+    async with engine.begin() as conn:
+
+        await conn.run_sync(Base.metadata.create_all)
+
+    print("TABLES CREATED")
 
 async def get_db():
 
@@ -188,14 +200,3 @@ async def stats(
         "visits": visits.scalar()
 
     }
-
-from database import engine
-from models import Base
-
-
-@app.on_event("startup")
-async def startup():
-
-    async with engine.begin() as conn:
-
-        await conn.run_sync(Base.metadata.create_all)
