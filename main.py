@@ -14,6 +14,21 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+from fastapi import Request
+
+
+@app.post("/api/feedback")
+async def feedback(request: Request):
+
+    data = await request.json()
+
+    print("FEEDBACK:", data)
+
+    return {
+
+        "success": True
+
+    }
 from pydantic import BaseModel
 
 
