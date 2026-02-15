@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+import os
+import httpx
 
 from database import SessionLocal
 from models import User, ReferralVisit
@@ -14,40 +16,52 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# Telegram Bot настройки
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8438331740:AAGxuhrNsqAfVbDrALrv0nxSL94Q6cE5L7M")
+TELEGRAM_ADMIN_ID = 535860690
+
 from fastapi import Request
-
-
-@app.post("/api/feedback")
-async def feedback(request: Request):
-
-    data = await request.json()
-
-    print("FEEDBACK:", data)
-
-    return {
-
-        "success": True
-
-    }
 from pydantic import BaseModel
 
 
 class Feedback(BaseModel):
-
-    telegramId: int
     message: str
+    userAgent: str = None
+    timestamp: int = None
 
 
 @app.post("/api/feedback")
 async def feedback(data: Feedback):
-
-    print("Feedback:", data)
-
-    return {
-
-        "success": True
-
-    }
+    """
+    Получает обратную связь и отправляет в Telegram администратору
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            # Формируем сообщение для Telegram
+            text = f"📩 <b>Обратная связь от пользователя</b>\n\n"
+            text += f"{data.message}\n\n"
+            if data.userAgent:
+                text += f"<i>User Agent: {data.userAgent[:100]}...</i>"
+            
+            # Отправляем сообщение в Telegram
+            response = await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": TELEGRAM_ADMIN_ID,
+                    "text": text,
+                    "parse_mode": "HTML"
+                },
+                timeout=10.0
+            )
+            
+            if response.status_code != 200:
+                print(f"Telegram API error: {response.status_code} - {response.text}")
+                return {"success": False, "error": "Failed to send message"}
+                
+        return {"success": True}
+    except Exception as e:
+        print(f"Feedback error: {e}")
+        return {"success": False, "error": str(e)}
 
 
 app.add_middleware(
